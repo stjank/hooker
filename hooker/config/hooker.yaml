@@ -1,0 +1,24 @@
+service:
+  #
+  # listen: listen address, only a single one is allowed
+  #
+  listen: 0.0.0.0
+
+  #
+  # port: port to bind
+  #
+  port: 8080
+
+endpoints:
+  #
+  #
+  name_of_the_endpoint:
+    #
+    # cool-down: only allow this trigger once every 5 minutes
+    #
+    cool-down: 5m
+
+    #
+    # action: action to run (path to a shell script)
+    #
+    action: /bin/touch $HOME/input
