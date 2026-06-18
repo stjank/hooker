@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["hooker/src"]
+where = ["src"]
 
 [project.scripts]
 hooker = "hooker.main:main"
