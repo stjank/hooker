@@ -23,9 +23,10 @@ def dict_to_ns(d):
 def build_app(config):
     app = FastAPI()
 
-    for key, value in vars(config.endpoints).items():
-        log.info(f"adding route {key} with action '{value.action}'")
-        app.add_api_route(f"/{key}", lambda : run_action(value.action), methods=["GET"])
+    if hasattr(config, "endpoints"):
+        for key, value in vars(config.endpoints).items():
+            log.info(f"adding route {key} with action '{value.action}'")
+            app.add_api_route(f"/{key}", lambda : run_action(value.action), methods=["GET"])
 
     return app
 
@@ -55,3 +56,6 @@ def start(host : str = typer.Option(None, help="listen address (0.0.0.0)"),
 
 def main():
     typer.run(start)
+
+if __name__ == "__main__":
+    main()
