@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hooker"
-version = "0.1.0"
-requires-python = ">=3.13"
+version = "0.2.0"
+requires-python = ">=3.11"
 dependencies = [
     "fastapi",
     "pyyaml",
@@ -20,4 +20,7 @@ where = ["src"]
 hooker = "hooker.main:main"
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = [
+    "pytest",
+    "requests",
+]

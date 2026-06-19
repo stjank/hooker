@@ -76,3 +76,25 @@ def test_hook_action(hooker_path):
             response = requests.get("http://localhost:9977/hook")
             assert response.status_code == 200
             assert f.read().strip() == "foo"
+
+def test_hook_cooldown(hooker_path):
+    with tempfile.NamedTemporaryFile(mode="r") as f:
+
+        CONFIG = textwrap.dedent(f"""\
+            service:
+                listen: 0.0.0.0
+                port: 9977
+            endpoints:
+                hook:
+                    cool-down: 2s
+                    action: /usr/bin/true
+            """)
+
+        with start_service(hooker_path, CONFIG):
+            response = requests.get("http://localhost:9977/hook")
+            assert response.status_code == 200
+            response = requests.get("http://localhost:9977/hook")
+            assert response.status_code == 429
+            time.sleep(2)
+            response = requests.get("http://localhost:9977/hook")
+            assert response.status_code == 200
