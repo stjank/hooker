@@ -15,8 +15,7 @@ from types import SimpleNamespace
 from datetime import timedelta
 
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("hooker")
-log.info("hooker ...")
+log = logging.getLogger("uvicorn")
 
 time_delta_regex = re.compile("((?P<hours>\d+?)h)?((?P<minutes>\d+?)m)?((?P<seconds>\d+?)s)?")
 def parse_timedelta(s):
@@ -46,7 +45,6 @@ def parse_access(config):
                 return False
 
         for net in allowed:
-            print(f"allowed net: {net}, client: {client_ip}")
             if client_ip in net:
                 return True
 
@@ -85,7 +83,6 @@ def build_app(config):
 
     if hasattr(config, "endpoints"):
         for key, value in vars(config.endpoints).items():
-            log.info(f"adding endpoint {key}")
             act = action(value)
             app.add_api_route(f"/{key}", act.run, methods=["GET"])
 
@@ -103,7 +100,6 @@ def load_config(config_file):
     if dir_path.startswith('.'):
         dir_path = config_file.parent / dir_path
 
-    log.info(f"loading config files from {dir_path}")
     files = [str(f) for f in Path(dir_path).glob("*.yaml")]
     return hiyapyco.load(str(config_file), *files, method=hiyapyco.METHOD_MERGE)
 
@@ -113,7 +109,6 @@ def start(host : str = typer.Option(None, help="listen address (0.0.0.0)"),
 
     if config is not None:
         dct = load_config(config)
-        print(yaml.dump(dct))
         config_file = dict_to_ns(dct)
     else:
         config_file = SimpleNamespace(**{
