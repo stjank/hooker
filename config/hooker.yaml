@@ -1,3 +1,10 @@
+#
+# config_dir: Drop additional config files in this directory. If it starts
+# with '.' the path is interpreted relative to this file. Only files with the
+# extension '.yaml' will be considered.
+#
+config_dir: ./conf.d
+
 service:
   #
   # listen: listen address, only a single one is allowed
@@ -11,12 +18,27 @@ service:
 
 endpoints:
   #
+  # A hook callable once every 5 minutes
   #
-  name_of_the_endpoint:
+  hook_with_cooldown:
     #
     # cool-down: only allow this trigger once every 5 minutes
     #
     cool-down: 5m
+
+    #
+    # action: action to run (path to a shell script)
+    #
+    action: /bin/touch $HOME/input
+
+  #
+  # A hook callable once every 5 minutes
+  #
+  hook_with_filter:
+    access:
+      policy: deny
+      allow:
+        - 10.5.5.0/24
 
     #
     # action: action to run (path to a shell script)

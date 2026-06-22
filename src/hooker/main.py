@@ -1,5 +1,7 @@
 import datetime
+import hiyapyco
 import logging
+import os
 import re
 import subprocess
 import typer
@@ -13,6 +15,7 @@ from datetime import timedelta
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("hooker")
+log.info("hooker ...")
 
 time_delta_regex = re.compile("((?P<hours>\d+?)h)?((?P<minutes>\d+?)m)?((?P<seconds>\d+?)s)?")
 def parse_timedelta(s):
@@ -52,6 +55,7 @@ def build_app(config):
 
     if hasattr(config, "endpoints"):
         for key, value in vars(config.endpoints).items():
+            log.info(f"adding endpoint {key}")
             act = action(value)
             app.add_api_route(f"/{key}", act.run, methods=["GET"])
 
@@ -60,13 +64,27 @@ def build_app(config):
 def run_server(config):
     uvicorn.run(build_app(config), host=config.service.listen, port=config.service.port)
 
+def load_config(config_file):
+    conf = hiyapyco.load(str(config_file))
+    if not 'config_dir' in conf:
+        return conf
+
+    dir_path = conf['config_dir']
+    if dir_path.startswith('.'):
+        dir_path = config_file.parent / dir_path
+
+    log.info(f"loading config files from {dir_path}")
+    files = [str(f) for f in Path(dir_path).glob("*.yaml")]
+    return hiyapyco.load(str(config_file), *files, method=hiyapyco.METHOD_MERGE)
+
 def start(host : str = typer.Option(None, help="listen address (0.0.0.0)"),
          port : int = typer.Option(None, help="port (8080)"),
          config : Path = typer.Option(None, help="path for config file")):
 
     if config is not None:
-        with open(config) as f:
-            config_file = dict_to_ns(yaml.safe_load(f))
+        dct = load_config(config)
+        print(yaml.dump(dct))
+        config_file = dict_to_ns(dct)
     else:
         config_file = SimpleNamespace(**{
             "host": "0.0.0.0",
