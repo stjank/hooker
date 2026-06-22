@@ -1,6 +1,7 @@
 # 0.2.0
 
 - guard hooks by configurable timeout
+- enable config directory
 
 # 0.1.0
 
