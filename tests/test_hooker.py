@@ -9,6 +9,8 @@ import time
 
 from pathlib import Path
 from contextlib import contextmanager
+from hooker.main import parse_timedelta
+from datetime import timedelta
 
 @contextmanager
 def start_service_with_config(path, config_file, *args):
@@ -133,3 +135,12 @@ def test_hook_config_dir(hooker_path):
         with start_service_with_config(hooker_path, path / "config.yaml"):
             response = requests.get("http://localhost:9977/hook")
             assert response.status_code == 200
+
+
+def test_parse_timedelta():
+    assert parse_timedelta("5h") == timedelta(hours=5)
+    assert parse_timedelta("20m") == timedelta(minutes=20)
+    assert parse_timedelta("13s") == timedelta(seconds=13)
+    assert parse_timedelta("5h20m13s") == timedelta(hours=5, minutes=20, seconds=13)
+    assert parse_timedelta("120s") == timedelta(minutes=2)
+    assert parse_timedelta("118m120s") == timedelta(hours=2)
