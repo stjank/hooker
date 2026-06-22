@@ -39,6 +39,9 @@ endpoints:
       policy: deny
       allow:
         - 10.5.5.0/24
+      deny:
+        - 10.7.2.0/24
+        - 10.5.5.66       # deny always overrides allow
 
     #
     # action: action to run (path to a shell script)

@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import textwrap
 import time
+import yaml
 
 from pathlib import Path
 from contextlib import contextmanager
@@ -103,6 +104,61 @@ def test_hook_cooldown(hooker_path):
         time.sleep(2)
         response = requests.get("http://localhost:9977/hook")
         assert response.status_code == 200
+
+class SourceAddressAdapter(requests.adapters.HTTPAdapter):
+    def __init__(self, source_address, **kwargs):
+        self.source_address = source_address
+        super().__init__(**kwargs)
+
+    def init_poolmanager(self, *args, **kwargs):
+        kwargs['source_address'] = self.source_address
+        super().init_poolmanager(*args, **kwargs)
+
+def access_status(hooker_path, access_config, **kwargs):
+    CONFIG= {
+        "service": {
+            "listen": "0.0.0.0",
+            "port": 9977
+        },
+        "endpoints": {
+            "hook": {
+                "action": "/usr/bin/true",
+                "access": access_config
+            }
+        }
+    }
+
+    with start_service(hooker_path, yaml.dump(CONFIG)):
+        session = requests.Session()
+        source_address = kwargs.get('source_address', None)
+        if source_address is not None:
+            session.mount("http://", SourceAddressAdapter(source_address))
+        response = session.get('http://localhost:9977/hook')
+        return response.status_code
+
+def test_hook_access(hooker_path):
+    assert access_status(hooker_path, {}) == 403
+
+    assert access_status(hooker_path, { "policy": "deny" }) == 403
+    assert access_status(hooker_path, { "policy": "deny", "allow": ["127.0.1.1"] },
+            source_address=('127.0.1.2', 0)) == 403
+    assert access_status(hooker_path, { "policy": "deny", "allow": ["127.0.1.1/32"] },
+            source_address=('127.0.1.1', 0)) == 200
+    assert access_status(hooker_path, { "policy": "deny", "allow": ["127.0.1.1/24"] },
+            source_address=('127.0.1.2', 0)) == 200
+
+    assert access_status(hooker_path, { "policy": "allow" }) == 200
+    assert access_status(hooker_path, { "policy": "allow", "deny": ["127.0.1.1"] },
+            source_address=('127.0.1.2', 0)) == 200
+    assert access_status(hooker_path, { "policy": "allow", "deny": ["127.0.1.1/32"] },
+            source_address=('127.0.1.1', 0)) == 403
+    assert access_status(hooker_path, { "policy": "allow", "deny": ["127.0.1.1/24"] },
+            source_address=('127.0.1.2', 0)) == 403
+
+    assert access_status(hooker_path, { "policy": "deny", "allow": ["127.0.0.0/16"], "deny": ["127.0.0.2"] },
+            source_address=('127.0.0.1', 0)) == 200
+    assert access_status(hooker_path, { "policy": "deny", "allow": ["127.0.0.0/16"], "deny": ["127.0.0.2"] },
+            source_address=('127.0.0.2', 0)) == 403
 
 def test_hook_config_dir(hooker_path):
     with tempfile.TemporaryDirectory() as tmpdir:

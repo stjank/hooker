@@ -1,5 +1,6 @@
 import datetime
 import hiyapyco
+import ipaddress
 import logging
 import os
 import re
@@ -8,7 +9,7 @@ import typer
 import uvicorn
 import yaml
 
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Response, Request, status
 from pathlib import Path
 from types import SimpleNamespace
 from datetime import timedelta
@@ -29,13 +30,42 @@ def parse_timedelta(s):
     items = { name: float(value) for name, value in groups.groupdict().items() if value }
     return timedelta(**items)
 
+def parse_access(config):
+    if config is None:
+        return None
+
+    policy = getattr(config, 'policy', 'deny')
+
+    allowed = [ipaddress.ip_network(cidr, strict=False) for cidr in getattr(config, 'allow', [])]
+    denied = [ipaddress.ip_network(cidr, strict=False) for cidr in getattr(config, 'deny', [])]
+
+    def access(request : Request):
+        client_ip = ipaddress.ip_address(request.client.host)
+        for net in denied:
+            if client_ip in net:
+                return False
+
+        for net in allowed:
+            print(f"allowed net: {net}, client: {client_ip}")
+            if client_ip in net:
+                return True
+
+        return policy == 'allow'
+
+    return access
+
 class action(object):
     def __init__(self, config):
         self.command = config.action
         self.cool_down = parse_timedelta(getattr(config, 'cool-down', None))
+        self.access = parse_access(getattr(config, 'access', None))
         self.last_run = None
 
-    def run(self, response : Response):
+    def run(self, request: Request, response : Response):
+        if self.access and not self.access(request):
+            response.status_code = status.HTTP_403_FORBIDDEN
+            return {}
+
         if self.cool_down and self.last_run and self.last_run + self.cool_down > datetime.datetime.now():
             response.status_code = status.HTTP_429_TOO_MANY_REQUESTS
             return {}
