@@ -17,7 +17,7 @@ from datetime import timedelta
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("uvicorn")
 
-time_delta_regex = re.compile("((?P<hours>\d+?)h)?((?P<minutes>\d+?)m)?((?P<seconds>\d+?)s)?")
+time_delta_regex = re.compile("((?P<hours>\\d+?)h)?((?P<minutes>\\d+?)m)?((?P<seconds>\\d+?)s)?")
 def parse_timedelta(s):
     if s is None:
         return None
